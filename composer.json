@@ -15,7 +15,7 @@
             "name": "Jason Lock",
             "email": "JLock@urthecast.com",
             "role": "Developer"
-        },
+        }
     ],
     "support": {
         "issues": "https://github.com/jonbwhite/elkuent/issues"
