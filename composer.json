@@ -1,0 +1,36 @@
+{
+    "name": "elkuent/elkuent",
+    "description": "ElasticSearch ORM for Laravel",
+    "keywords": ["elasticsearch", "laravel", "framework", "eloquent", "database", "ealstic", "orm", "ELK", "activerecord", "active record"],
+    "type": "library",
+    "homepage": "https://github.com/jonbwhite/elkuent",
+    "license": "BSD-3-Clause",
+    "authors": [
+        {
+            "name": "Jon Whiteaker",
+            "email": "JWhiteaker@urthecast.com",
+            "role": "Developer"
+        },
+        {
+            "name": "Jason Lock",
+            "email": "JLock@urthecast.com",
+            "role": "Developer"
+        },
+    ],
+    "support": {
+        "issues": "https://github.com/jonbwhite/elkuent/issues"
+    },
+    "require": {
+        "php": ">=5.4.0",
+        "illuminate/support": "~4.2",
+        "illuminate/database": "~4.2",
+        "illuminate/validation": "~4.2",
+        "elasticsearch/elasticsearch": "~1.0"
+    },
+    "autoload": {
+        "psr-0": {
+            "Elquent": "src/"
+        }
+    },
+    "minimum-stability": "dev"
+}
