@@ -1,4 +1,4 @@
-<?php namespace Elkuent\Elkuent;
+<?php namespace Elkuent;
 
 use Elasticsearch;
 
