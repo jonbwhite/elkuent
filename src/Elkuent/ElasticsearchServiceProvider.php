@@ -1,6 +1,6 @@
 <?php namespace Elkuent;
 
-use Model;
+//use Model;
 use Illuminate\Support\ServiceProvider;
 
 class ElasticsearchServiceProvider extends ServiceProvider {
@@ -12,8 +12,8 @@ class ElasticsearchServiceProvider extends ServiceProvider {
      */
     public function boot()
     {
-        Model::setConnectionResolver($this->app['db']);
-        Model::setEventDispatcher($this->app['events']);
+        // Model::setConnectionResolver($this->app['db']);
+        // Model::setEventDispatcher($this->app['events']);
     }
 
     /**
@@ -25,7 +25,10 @@ class ElasticsearchServiceProvider extends ServiceProvider {
     {
         $this->app->resolving('db', function($db)
         {
-            return new Connection($config);
+            $db->extend('elasticsearch', function($config)
+            {
+                return new Connection($config);
+            });
         });
     }
 }
