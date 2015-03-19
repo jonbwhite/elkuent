@@ -18,9 +18,11 @@ class Connection extends \Illuminate\Database\Connection {
      */
      protected $connection;
 
-     protected $configFilters = array('driver');
+     protected $configFilters = array('driver', 'defaultIndex');
 
      protected $config;
+
+     protected $defaultIndex = null;
 
     /**
      * Create a new database connection instance.
@@ -39,9 +41,14 @@ class Connection extends \Illuminate\Database\Connection {
                 $filteredConfig[$key] = $value;
             }
         }
-
+        $this->defaultIndex = $config['defaultIndex'];
         $this->connection = new \Elasticsearch\Client($filteredConfig);
         $this->useDefaultPostProcessor();
+    }
+
+    public function getDefaultIndex()
+    {
+        return $this->defaultIndex;
     }
 
     public function getDriverName()
@@ -57,7 +64,9 @@ class Connection extends \Illuminate\Database\Connection {
      */
     public function table($table)
     {
-        return $this->collection($table);
+        $processor = $this->getPostProcessor();
+        $query = new Builder($this, $processor);
+        return $query->from($table);
     }
 
     /**
