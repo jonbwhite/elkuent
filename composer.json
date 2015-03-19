@@ -29,8 +29,7 @@
     },
     "autoload": {
         "psr-0": {
-            "Elkuent\\Elkuent": "src/",
-            "Elquent": "src/"
+            "Elkuent\\Elkuent": "src/"
         }
     },
     "minimum-stability": "dev"
