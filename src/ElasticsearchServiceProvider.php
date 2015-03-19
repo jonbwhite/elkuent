@@ -1,6 +1,6 @@
-<?php namespace elkuent\elkuent;
+<?php namespace Elkuent\Elkuent;
 
-use elkuent\elkuent\Model;
+use Elkuent\Elkuent\Model;
 use Illuminate\Support\ServiceProvider;
 
 class ElasticsearchServiceProvider extends ServiceProvider {

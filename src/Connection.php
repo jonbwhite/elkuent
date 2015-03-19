@@ -1,4 +1,4 @@
-<?php namespace elkuent\elkuent;
+<?php namespace Elkuent\Elkuent;
 
 use Elasticsearch;
 
@@ -26,6 +26,7 @@ class Connection extends \Illuminate\Database\Connection {
      */
     public function __construct(array $config)
     {
-
+        $this->connection = new \Elasticsearch\Client($config);
     }
+
 }
