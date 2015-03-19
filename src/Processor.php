@@ -1,4 +1,4 @@
-<?php namespace elkuent\elkuent;
+<?php namespace Elkuent\Elkuent;
 
 use Illuminate\Database\Query\Processors\Processor as BaseProcessor;
 
