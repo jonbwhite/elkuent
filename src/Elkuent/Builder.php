@@ -16,7 +16,9 @@ class Builder extends BaseBuilder {
     protected $operators = array(
         '=', '<', '>', '<=', '>=', '<>', '!=',
         'like', 'not like', 'between', 'ilike',
-        '&', '|', '^', '<<', '>>',
+        // AFIK elasticsearch does not support bitwise operations
+        // see: https://github.com/elastic/elasticsearch/issues/975
+        // '&', '|', '^', '<<', '>>',
         'rlike', 'regexp', 'not regexp',
     );
 
@@ -25,15 +27,7 @@ class Builder extends BaseBuilder {
      *
      * @var array
      */
-    protected $conversion = array(
-        '='  => '=',
-        '!=' => '$ne',
-        '<>' => '$ne',
-        '<'  => '$lt',
-        '<=' => '$lte',
-        '>'  => '$gt',
-        '>=' => '$gte',
-    );
+    protected $conversion;
 
     /**
      * Create a new query builder instance.
@@ -54,6 +48,42 @@ class Builder extends BaseBuilder {
         {
             $this->index = $connection->getDefaultIndex();
         }
+
+        $this->conversion = array(
+            '<'  => function($column, $value){
+                return array(
+                    'range' => array(
+                        $column => array('lt' => $value)
+                    )
+                );},
+            '<=' => function($column, $value){
+                return array(
+                    'range' => array(
+                        $column => array('lte' => $value)
+                    )
+                );},
+            '>'  => function($column, $value){
+                return array(
+                    'range' => array(
+                        $column => array('gt' => $value)
+                    )
+                );},
+            '>=' => function($column, $value){
+                return array(
+                    'range' => array(
+                        $column => array('gte' => $value)
+                    )
+                );},
+            'between' => function($column, $value){
+                return array(
+                    'range' => array(
+                        $column => array(
+                            'lte' => $value[0],
+                            'gte' => $value[1]
+                        )
+                    )
+                );}
+        );
     }
 
     /**
@@ -671,13 +701,20 @@ class Builder extends BaseBuilder {
      *
      * @return array
      */
-    protected function compileWheres()
+    public function compileWheres()
     {
-        // The wheres to compile.
-        $wheres = $this->wheres ?: array();
 
         // We will add all compiled wheres to this array.
-        $compiled = array();
+        $filter = array(
+            'bool' => array(
+                'must' => array(),
+                'should' => array(),
+                'must_not' => array()
+            )
+        );
+
+        // The wheres to compile.
+        $wheres = $this->wheres ?: array();
 
         foreach ($wheres as $i => &$where)
         {
@@ -688,14 +725,13 @@ class Builder extends BaseBuilder {
 
                 // Operator conversions
                 $convert = array(
-                    'regexp' => 'regex',
-                    'elemmatch' => 'elemMatch',
-                    'geointersects' => 'geoIntersects',
-                    'geowithin' => 'geoWithin',
-                    'nearsphere' => 'nearSphere',
-                    'maxdistance' => 'maxDistance',
-                    'centersphere' => 'centerSphere',
-                    'uniquedocs' => 'uniqueDocs',
+                    null => 'term',
+                    '=' => 'term',
+                    '<>' => 'not term',
+                    '!=' => 'not term',
+                    'regex' => 'regexp',
+                    'rlike' => 'regexp',
+                    'ilike' => 'regexp',
                 );
 
                 if (array_key_exists($where['operator'], $convert))
@@ -704,38 +740,13 @@ class Builder extends BaseBuilder {
                 }
             }
 
-            // Convert id's.
-            if (isset($where['column']) and ($where['column'] == '_id' or ends_with($where['column'], '._id')))
-            {
-                // Multiple values.
-                if (isset($where['values']))
-                {
-                    foreach ($where['values'] as &$value)
-                    {
-                        $value = $this->convertKey($value);
-                    }
-                }
-
-                // Single value.
-                else if (isset($where['value']))
-                {
-                    $where['value'] = $this->convertKey($where['value']);
-                }
-            }
-
+            /*
             // Convert DateTime values to MongoDate.
             if (isset($where['value']) and $where['value'] instanceof DateTime)
             {
                 $where['value'] = new MongoDate($where['value']->getTimestamp());
             }
-
-            // The next item in a "chain" of wheres devices the boolean of the
-            // first item. So if we see that there are multiple wheres, we will
-            // use the operator of the next where.
-            if ($i == 0 and count($wheres) > 1 and $where['boolean'] == 'and')
-            {
-                $where['boolean'] = $wheres[$i+1]['boolean'];
-            }
+            */
 
             // We use different methods to compile different wheres.
             $method = "compileWhere{$where['type']}";
@@ -744,71 +755,69 @@ class Builder extends BaseBuilder {
             // Wrap the where with an $or operator.
             if ($where['boolean'] == 'or')
             {
-                $result = array('$or' => array($result));
+                $filter['bool']['should'][] = $result;
             }
-
-            // If there are multiple wheres, we will wrap it with $and. This is needed
-            // to make nested wheres work.
-            else if (count($wheres) > 1)
+            else
             {
-                $result = array('$and' => array($result));
+                $filter['bool']['must'][] = $result;
             }
 
-            // Merge the compiled where with the others.
-            $compiled = array_merge_recursive($compiled, $result);
         }
 
-        return $compiled;
+        return $filter;
     }
 
     protected function compileWhereBasic($where)
     {
+        $filter = array();
         extract($where);
 
-        // Replace like with a MongoRegex instance.
+
+        if (starts_with($operator, 'not'))
+        {
+            $where['operator'] = str_replace('not ', '', $operator);
+            return array(
+                'not' => $this->compileWhereBasic($where)
+            );
+        }
+
+        // Turn like into regex
         if ($operator == 'like')
         {
-            $operator = '=';
-            $regex = str_replace('%', '', $value);
-
-            // Convert like to regular expression.
-            if ( ! starts_with($value, '%')) $regex = '^' . $regex;
-            if ( ! ends_with($value, '%'))   $regex = $regex . '$';
-
-            $value = new MongoRegex("/$regex/i");
+            $value = str_replace(['_','%'], ['.','.*'], strtolower($value));
+            $operator = 'regexp';
         }
-
-        // Manipulate regexp operations.
-        elseif (in_array($operator, array('regexp', 'not regexp', 'regex', 'not regex')))
+        else if ($operator == 'regexp')
         {
-            // Automatically convert regular expression strings to MongoRegex objects.
-            if ( ! $value instanceof MongoRegex)
-            {
-                $value = new MongoRegex($value);
+            // Elasticsearch is all lowercase
+            $value = strtolower($value);
+
+            // Elasticsearch auto anchors regex queries, so this will convert 
+            // sql-like regexp patterns to a format that will match Lucene's patterns
+            if (!starts_with($operator, '^')){
+                $value = ".*".$value;
+            } else {
+                $value = substr($value, 1);
             }
 
-            // For inverse regexp operations, we can just use the $not operator
-            // and pass it a MongoRegex instence.
-            if (starts_with($operator, 'not'))
-            {
-                $operator = 'not';
+            if (!ends_with($operator, '$')){
+                $value = $value.".*";
+            } else {
+                $value = substr($value, 0, strlen($value)-1);
             }
+
         }
 
-        if ( ! isset($operator) or $operator == '=')
+        if (array_key_exists($operator, $this->conversion))
         {
-            $query = array($column => $value);
-        }
-        else if (array_key_exists($operator, $this->conversion))
-        {
-            $query = array($column => array($this->conversion[$operator] => $value));
+            $filter= $this->conversion[$operator]($column, $value);
         }
         else
         {
-            $query = array($column => array('$' . $operator => $value));
+            $filter = array($operator => array($column => $value));
         }
 
-        return $query;
+        return $filter;
     }
 
     protected function compileWhereNested($where)
@@ -851,33 +860,7 @@ class Builder extends BaseBuilder {
     protected function compileWhereBetween($where)
     {
         extract($where);
-
-        if ($not)
-        {
-            return array(
-                '$or' => array(
-                    array(
-                        $column => array(
-                            '$lte' => $values[0]
-                        )
-                    ),
-                    array(
-                        $column => array(
-                            '$gte' => $values[1]
-                        )
-                    )
-                )
-            );
-        }
-        else
-        {
-            return array(
-                $column => array(
-                    '$gte' => $values[0],
-                    '$lte' => $values[1]
-                )
-            );
-        }
+        return $this->conversion['between']($column, $values);
     }
 
     protected function compileWhereRaw($where)
