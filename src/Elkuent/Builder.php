@@ -6,7 +6,7 @@ use Illuminate\Database\Query\Expression;
 
 class Builder extends BaseBuilder {
 
-     protected $index = null;
+     public $index = null;
 
     /**
      * All of the available clause operators.
@@ -45,6 +45,7 @@ class Builder extends BaseBuilder {
     {
         $this->connection = $connection;
         $this->processor = $processor;
+
         if ($index != null)
         {
             $this->index = $index;
@@ -395,12 +396,6 @@ class Builder extends BaseBuilder {
      */
     public function update(array $values, array $options = array())
     {
-        // Use $set as default operator.
-        if ( ! starts_with(key($values), '$'))
-        {
-            $values = array('$set' => $values);
-        }
-
         return $this->performUpdate($values, $options);
     }
 
@@ -483,22 +478,6 @@ class Builder extends BaseBuilder {
         }
 
         return 0;
-    }
-
-    /**
-     * Set the collection which the query is targeting.
-     *
-     * @param  string  $collection
-     * @return Builder
-     */
-    public function from($collection)
-    {
-        if ($collection)
-        {
-            $this->collection = $this->connection->getCollection($collection);
-        }
-
-        return parent::from($collection);
     }
 
     /**
@@ -636,20 +615,24 @@ class Builder extends BaseBuilder {
      */
     protected function performUpdate($query, array $options = array())
     {
-        // Update multiple items by default.
-        if ( ! array_key_exists('multiple', $options))
-        {
-            $options['multiple'] = true;
+        $params = array();
+        $documents = $this->getFresh(array('_id'));
+
+        foreach ($documents as $document) {
+            $params['body'][] = array(
+                'index' => array(
+                    '_index' => $this->index,
+                    '_type'  => $this->from,
+                    '_id' => $document['_id']
+                )
+            );
+
+            $params['body'][] = $query;
         }
 
-        $wheres = $this->compileWheres();
+        $results = $this->connection->bulk($params);
 
-        $result = $this->collection->update($wheres, $query, $options);
-
-        if (1 == (int) $result['ok'])
-        {
-            return $result['n'];
-        }
+        if (!$results['errors'])  return count($results['items']);
 
         return 0;
     }
