@@ -111,135 +111,43 @@ class Builder extends BaseBuilder {
         // all of the columns on the table using the "wildcard" column character.
         if (is_null($this->columns)) $this->columns = $columns;
 
-        // Drop all columns if * is present, MongoDB does not work this way.
+        // Drop all columns if * is present, Elasticsearch does not work this way.
         if (in_array('*', $this->columns)) $this->columns = array();
 
         // Compile wheres
         $wheres = $this->compileWheres();
 
-        // Use MongoDB's aggregation framework when using grouping or aggregation functions.
-        if ($this->groups or $this->aggregate)
-        {
-            $group = array();
+        $params = array();
+        $params['body']['query']['filtered']['filter'] = $wheres;
+        $params['index'] = $this->index;
+        $params['type']  = $this->from;
 
-            // Add grouping columns to the $group part of the aggregation pipeline.
-            if ($this->groups)
-            {
-                foreach ($this->groups as $column)
-                {
-                    $group['_id'][$column] = '$' . $column;
-
-                    // When grouping, also add the $last operator to each grouped field,
-                    // this mimics MySQL's behaviour a bit.
-                    $group[$column] = array('$last' => '$' . $column);
-                }
-            }
-            else
-            {
-                // If we don't use grouping, set the _id to null to prepare the pipeline for
-                // other aggregation functions.
-                $group['_id'] = null;
-            }
-
-            // Add aggregation functions to the $group part of the aggregation pipeline,
-            // these may override previous aggregations.
-            if ($this->aggregate)
-            {
-                $function = $this->aggregate['function'];
-
-                foreach ($this->aggregate['columns'] as $column)
-                {
-                    // Translate count into sum.
-                    if ($function == 'count')
-                    {
-                        $group['aggregate'] = array('$sum' => 1);
-                    }
-                    // Pass other functions directly.
-                    else
-                    {
-                        $group['aggregate'] = array('$' . $function => '$' . $column);
-                    }
-                }
-            }
-
-            // If no aggregation functions are used, we add the additional select columns
-            // to the pipeline here, aggregating them by $last.
-            else
-            {
-                foreach ($this->columns as $column)
-                {
-                    $key = str_replace('.', '_', $column);
-
-                    $group[$key] = array('$last' => '$' . $column);
-                }
-            }
-
-            // Build the aggregation pipeline.
-            $pipeline = array();
-            if ($wheres) $pipeline[] = array('$match' => $wheres);
-            $pipeline[] = array('$group' => $group);
-
-            // Apply order and limit
-            if ($this->orders)      $pipeline[] = array('$sort' => $this->orders);
-            if ($this->offset)      $pipeline[] = array('$skip' => $this->offset);
-            if ($this->limit)       $pipeline[] = array('$limit' => $this->limit);
-            if ($this->projections) $pipeline[] = array('$project' => $this->projections);
-
-            // Execute aggregation
-            $results = $this->collection->aggregate($pipeline);
-
-            // Return results
-            return $results['result'];
+        if (!empty($this->columns)) {
+            $params['body']['_source'] = $this->columns;
         }
 
-        // Distinct query
-        else if ($this->distinct)
-        {
-            // Return distinct results directly
-            $column = isset($this->columns[0]) ? $this->columns[0] : '_id';
+        // Apply order, offset and limit
+        /* TODO add these to reference ES stuffs...
+        if ($this->timeout) $cursor->timeout($this->timeout);
+        if ($this->orders)  $cursor->sort($this->orders);
+        if ($this->offset)  $cursor->skip($this->offset);
+        if ($this->limit)   $cursor->limit($this->limit);
+        */
 
-            // Execute distinct
-            if ($wheres)
-            {
-                $result = $this->collection->distinct($column, $wheres);
-            }
-            else
-            {
-                $result = $this->collection->distinct($column);
+        $hits = $this->connection->search($params);
+        $results = array();
+
+        foreach($hits['hits']['hits'] as $hit) {
+            $result = $hit['_source'];
+
+            if (empty($this->columns) || in_array('id', $this->columns) || in_array('_id', $this->columns)) {
+                $result['_id'] = $hit['_id'];
             }
 
-            return $result;
+            array_push($results, $result);
         }
 
-        // Normal query
-        else
-        {
-            $columns = array();
-
-            // Convert select columns to simple projections.
-            foreach ($this->columns as $column)
-            {
-                $columns[$column] = true;
-            }
-
-            // Add custom projections.
-            if ($this->projections)
-            {
-                $columns = array_merge($columns, $this->projections);
-            }
-
-            // Execute query and get MongoCursor
-            $cursor = $this->collection->find($wheres, $columns);
-
-            // Apply order, offset and limit
-            if ($this->timeout) $cursor->timeout($this->timeout);
-            if ($this->orders)  $cursor->sort($this->orders);
-            if ($this->offset)  $cursor->skip($this->offset);
-            if ($this->limit)   $cursor->limit($this->limit);
-
-            // Return results as an array with numeric keys
-            return iterator_to_array($cursor, false);
-        }
+        return $results;
     }
 
     /**
@@ -646,7 +554,7 @@ class Builder extends BaseBuilder {
     protected function performUpdate($query, array $options = array())
     {
         $params = array();
-        $documents = $this->getFresh(array('_id'));
+        $documents = $this->getFresh();
 
         foreach ($documents as $document) {
             $params['body'][] = array(
@@ -657,7 +565,7 @@ class Builder extends BaseBuilder {
                 )
             );
 
-            $params['body'][] = $query;
+            $params['body'][] = array_merge($document, $query);
         }
 
         $results = $this->connection->bulk($params);
@@ -792,7 +700,7 @@ class Builder extends BaseBuilder {
             // Elasticsearch is all lowercase
             $value = strtolower($value);
 
-            // Elasticsearch auto anchors regex queries, so this will convert 
+            // Elasticsearch auto anchors regex queries, so this will convert
             // sql-like regexp patterns to a format that will match Lucene's patterns
             if (!starts_with($operator, '^')){
                 $value = ".*".$value;
@@ -831,19 +739,25 @@ class Builder extends BaseBuilder {
     {
         extract($where);
 
-        return array($column => array('$in' => array_values($values)));
+        $where['operator'] = 'terms';
+        $where['value'] = array_values($values);
+
+        return $this->compileWhereBasic($where);
     }
 
     protected function compileWhereNotIn($where)
     {
         extract($where);
 
-        return array($column => array('$nin' => array_values($values)));
+        $where['operator'] = 'not terms';
+        $where['value'] = array_values($values);
+
+        return $this->compileWhereBasic($where);
     }
 
     protected function compileWhereNull($where)
     {
-        $where['operator'] = '=';
+        $where['operator'] = 'term';
         $where['value'] = null;
 
         return $this->compileWhereBasic($where);
@@ -851,7 +765,7 @@ class Builder extends BaseBuilder {
 
     protected function compileWhereNotNull($where)
     {
-        $where['operator'] = '!=';
+        $where['operator'] = 'not term';
         $where['value'] = null;
 
         return $this->compileWhereBasic($where);
@@ -860,7 +774,11 @@ class Builder extends BaseBuilder {
     protected function compileWhereBetween($where)
     {
         extract($where);
-        return $this->conversion['between']($column, $values);
+
+        $where['operator'] = 'between';
+        $where['value'] = $values;
+
+        return $this->compileWhereBasic($where);
     }
 
     protected function compileWhereRaw($where)
