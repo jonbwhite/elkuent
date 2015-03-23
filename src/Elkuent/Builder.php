@@ -9,6 +9,11 @@ class Builder extends BaseBuilder {
      public $index = null;
 
     /**
+     * The maximum number of documents to be returned for a query.
+     */
+     public $maxQuerySize = 100;
+
+    /**
      * All of the available clause operators.
      *
      * @var array
@@ -134,17 +139,31 @@ class Builder extends BaseBuilder {
         if ($this->limit)   $cursor->limit($this->limit);
         */
 
-        $hits = $this->connection->search($params);
         $results = array();
+        $numQueryResults = null;
+        $limit = isset($this->limit) ? $this->limit : PHP_INT_MAX;
+        $offset = isset($this->offset) ? $this->offset : 0;
 
-        foreach($hits['hits']['hits'] as $hit) {
-            $result = $hit['_source'];
+        while (count($results) !== $numQueryResults){
 
-            if (empty($this->columns) || in_array('id', $this->columns) || in_array('_id', $this->columns)) {
-                $result['_id'] = $hit['_id'];
+            $params['from'] = $offset + count($results);
+            $params['size'] = min($this->maxQuerySize, $limit - count($results));
+
+            $hits = $this->connection->search($params);
+
+            if (!isset($numQueryResults)){
+                $numQueryResults = min($hits['hits']['total'], $limit);
             }
 
-            array_push($results, $result);
+            foreach($hits['hits']['hits'] as $hit) {
+                $result = $hit['_source'];
+
+                if (empty($this->columns) || in_array('id', $this->columns) || in_array('_id', $this->columns)) {
+                    $result['_id'] = $hit['_id'];
+                }
+
+                array_push($results, $result);
+            }
         }
 
         return $results;
