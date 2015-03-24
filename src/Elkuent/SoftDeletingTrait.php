@@ -1,4 +1,4 @@
-<?php namespace Jenssegers\Mongodb\Eloquent;
+<?php namespace Elkuent;
 
 trait SoftDeletingTrait {
 
