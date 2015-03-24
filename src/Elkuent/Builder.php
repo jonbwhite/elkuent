@@ -133,6 +133,7 @@ class Builder extends BaseBuilder {
 
         // Apply order, offset and limit
         /* TODO add these to reference ES stuffs...
+
         if ($this->timeout) $cursor->timeout($this->timeout);
         if ($this->orders)  $cursor->sort($this->orders);
         if ($this->offset)  $cursor->skip($this->offset);
@@ -667,13 +668,13 @@ class Builder extends BaseBuilder {
                 }
             }
 
-            /*
-            // Convert DateTime values to MongoDate.
-            if (isset($where['value']) and $where['value'] instanceof DateTime)
+            // The next item in a "chain" of wheres devices the boolean of the
+            // first item. So if we see that there are multiple wheres, we will
+            // use the operator of the next where.
+            if ($i == 0 and count($wheres) > 1 and $where['boolean'] == 'and')
             {
-                $where['value'] = new MongoDate($where['value']->getTimestamp());
+                $where['boolean'] = $wheres[$i+1]['boolean'];
             }
-            */
 
             // We use different methods to compile different wheres.
             $method = "compileWhere{$where['type']}";
@@ -776,16 +777,19 @@ class Builder extends BaseBuilder {
 
     protected function compileWhereNull($where)
     {
-        $where['operator'] = 'term';
-        $where['value'] = null;
+        $where['operator'] = 'missing';
+        $where['value'] = $where['column'];
+        $where['column'] = 'field';
+
 
         return $this->compileWhereBasic($where);
     }
 
     protected function compileWhereNotNull($where)
     {
-        $where['operator'] = 'not term';
-        $where['value'] = null;
+        $where['operator'] = 'exists';
+        $where['value'] = $where['column'];
+        $where['column'] = 'field';
 
         return $this->compileWhereBasic($where);
     }

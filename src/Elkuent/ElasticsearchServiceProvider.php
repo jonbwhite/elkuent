@@ -12,8 +12,8 @@ class ElasticsearchServiceProvider extends ServiceProvider {
      */
     public function boot()
     {
-        // Model::setConnectionResolver($this->app['db']);
-        // Model::setEventDispatcher($this->app['events']);
+        Model::setConnectionResolver($this->app['db']);
+        Model::setEventDispatcher($this->app['events']);
     }
 
     /**

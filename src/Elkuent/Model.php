@@ -1,19 +1,11 @@
-<?php namespace Elkquent;
+<?php namespace Elkuent;
 
-// use Jenssegers\Mongodb\DatabaseManager as Resolver;
-use Elkquent\Builder;
-use Illuminate\Database\Eloquent\Relations\Relation;
-
-// use Jenssegers\Mongodb\Relations\EmbedsOneOrMany;
-// use Jenssegers\Mongodb\Relations\EmbedsMany;
-// use Jenssegers\Mongodb\Relations\EmbedsOne;
+use Elkuent\Builder;
 
 use Carbon\Carbon;
 use DateTime;
-// use MongoId;
-// use MongoDate;
 
-abstract class Model extends \Illuminate\Database\Eloquent\Model {
+class Model extends \Illuminate\Database\Eloquent\Model {
 
     protected $index = null;
 
@@ -154,6 +146,8 @@ abstract class Model extends \Illuminate\Database\Eloquent\Model {
      */
     protected function newBaseQueryBuilder()
     {
+        $connection = $this->getConnection();
+
         return new Builder($connection, $connection->getPostProcessor(), $this->index);
     }
 
