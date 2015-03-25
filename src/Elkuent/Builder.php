@@ -194,6 +194,9 @@ class Builder extends BaseBuilder {
     /**
      * Execute an aggregate function on the database.
      *
+     * @TODO Update to use aggregation key in the returned results
+     *       when aggregation support is added.
+     *
      * @param  string  $function
      * @param  array   $columns
      * @return mixed
@@ -209,12 +212,7 @@ class Builder extends BaseBuilder {
         // the aggregate value getting in the way when the grammar builds it.
         $this->columns = null; $this->aggregate = null;
 
-        if (isset($results[0]))
-        {
-            $result = (array) $results[0];
-
-            return $result['aggregate'];
-        }
+        return count($results);
     }
 
     /**
