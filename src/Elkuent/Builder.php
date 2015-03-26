@@ -131,14 +131,35 @@ class Builder extends BaseBuilder {
             $params['body']['_source'] = $this->columns;
         }
 
-        // Apply order, offset and limit
+        // Apply order, groups, and timeout
         /* TODO add these to reference ES stuffs...
 
         if ($this->timeout) $cursor->timeout($this->timeout);
         if ($this->orders)  $cursor->sort($this->orders);
-        if ($this->offset)  $cursor->skip($this->offset);
-        if ($this->limit)   $cursor->limit($this->limit);
         */
+
+        if ($this->aggregate){
+
+            $function = $this->aggregate['function'];
+            $aggregates = array();
+
+            foreach ($this->aggregate['columns'] as $column)
+            {
+                $aggName = $function.'_'.$column;
+                // Translate count into sum.
+                if ($function == 'count')
+                {
+                    $aggregates[$aggName] = array('sum' => array("field" => $column));
+                }
+                // Pass other functions directly.
+                else
+                {
+                    $aggregates[$aggName] = array($function => array("field" => $column));
+                }
+            }
+            $params['body']['aggs'] = $aggregates;
+        }
+
 
         $results = array();
         $numQueryResults = null;
