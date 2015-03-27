@@ -213,7 +213,7 @@ class Builder extends BaseBuilder {
 
         $aggregates = array();
 
-        $aggName = "HURRDURR";
+        $aggName = $function;
         // Translate count into sum.
         if ($function == 'count')
         {
@@ -229,11 +229,9 @@ class Builder extends BaseBuilder {
             }
             // Pass other functions directly.
         } else {
-            $aggregates[$aggName] = array($function => array("field" => $column[0]));
+            $aggregates[$aggName] = array($function => array("field" => $columns[0]));
         }
         $params['body']['aggs'] = $aggregates;
-
-        print(json_encode($params));
 
         $results = $this->connection->search($params);
 
