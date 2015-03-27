@@ -131,14 +131,14 @@ class Builder extends BaseBuilder {
             $params['body']['_source'] = $this->columns;
         }
 
-        // Apply order, offset and limit
+        // Apply order, groups, and timeout
         /* TODO add these to reference ES stuffs...
 
         if ($this->timeout) $cursor->timeout($this->timeout);
         if ($this->orders)  $cursor->sort($this->orders);
-        if ($this->offset)  $cursor->skip($this->offset);
-        if ($this->limit)   $cursor->limit($this->limit);
         */
+
+
 
         $results = array();
         $numQueryResults = null;
@@ -203,16 +203,49 @@ class Builder extends BaseBuilder {
      */
     public function aggregate($function, $columns = array())
     {
-        $this->aggregate = compact('function', 'columns');
+        // Compile wheres
+        $wheres = $this->compileWheres();
 
-        $results = $this->get($columns);
+        $params = array();
+        $params['body']['query']['filtered']['filter'] = $wheres;
+        $params['index'] = $this->index;
+        $params['type']  = $this->from;
+
+        $aggregates = array();
+
+        $aggName = $function;
+        // Translate count into sum.
+        if ($function == 'count')
+        {
+            $aggregates[$aggName] = array('filter' => array("and" => array()));
+            foreach ($columns as $column)
+            {
+                if ($column == "*") {
+                    $aggregates[$aggName]['filter']['and'][] = array('match_all' => array());
+                } else {
+                    $aggregates[$aggName]['filter']['and'][] = array('exists' => array('field' => $column));
+                }
+
+            }
+            // Pass other functions directly.
+        } else {
+            $aggregates[$aggName] = array($function => array("field" => $columns[0]));
+        }
+        $params['body']['aggs'] = $aggregates;
+
+        $results = $this->connection->search($params);
 
         // Once we have executed the query, we will reset the aggregate property so
         // that more select queries can be executed against the database without
         // the aggregate value getting in the way when the grammar builds it.
         $this->columns = null; $this->aggregate = null;
 
-        return count($results);
+        if ($function == 'count') {
+            return $results['aggregations'][$aggName]['doc_count'];
+        } else {
+            return $results['aggregations'][$aggName]['value'];
+        }
+
     }
 
     /**
