@@ -138,27 +138,6 @@ class Builder extends BaseBuilder {
         if ($this->orders)  $cursor->sort($this->orders);
         */
 
-        if ($this->aggregate){
-
-            $function = $this->aggregate['function'];
-            $aggregates = array();
-
-            foreach ($this->aggregate['columns'] as $column)
-            {
-                $aggName = $function.'_'.$column;
-                // Translate count into sum.
-                if ($function == 'count')
-                {
-                    $aggregates[$aggName] = array('sum' => array("field" => $column));
-                }
-                // Pass other functions directly.
-                else
-                {
-                    $aggregates[$aggName] = array($function => array("field" => $column));
-                }
-            }
-            $params['body']['aggs'] = $aggregates;
-        }
 
 
         $results = array();
@@ -226,7 +205,35 @@ class Builder extends BaseBuilder {
     {
         $this->aggregate = compact('function', 'columns');
 
-        $results = $this->get($columns);
+        // Compile wheres
+        $wheres = $this->compileWheres();
+
+        $params = array();
+        $params['body']['query']['filtered']['filter'] = $wheres;
+        $params['index'] = $this->index;
+        $params['type']  = $this->from;
+
+        if (!empty($this->columns)) {
+            $params['body']['_source'] = $this->columns;
+        }
+        $function = $this->aggregate['function'];
+        $aggregates = array();
+
+        foreach ($this->aggregate['columns'] as $column)
+        {
+            $aggName = $function.'_'.$column;
+            // Translate count into sum.
+            if ($function == 'count')
+            {
+                $aggregates[$aggName] = array('sum' => array("field" => $column));
+            }
+            // Pass other functions directly.
+            else
+            {
+                $aggregates[$aggName] = array($function => array("field" => $column));
+            }
+        }
+        $params['body']['aggs'] = $aggregates;
 
         // Once we have executed the query, we will reset the aggregate property so
         // that more select queries can be executed against the database without
