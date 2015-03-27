@@ -203,8 +203,6 @@ class Builder extends BaseBuilder {
      */
     public function aggregate($function, $columns = array())
     {
-        $this->aggregate = compact('function', 'columns');
-
         // Compile wheres
         $wheres = $this->compileWheres();
 
@@ -213,34 +211,43 @@ class Builder extends BaseBuilder {
         $params['index'] = $this->index;
         $params['type']  = $this->from;
 
-        if (!empty($this->columns)) {
-            $params['body']['_source'] = $this->columns;
-        }
-        $function = $this->aggregate['function'];
         $aggregates = array();
 
-        foreach ($this->aggregate['columns'] as $column)
+        $aggName = "HURRDURR";
+        // Translate count into sum.
+        if ($function == 'count')
         {
-            $aggName = $function.'_'.$column;
-            // Translate count into sum.
-            if ($function == 'count')
+            $aggregates[$aggName] = array('filter' => array("and" => array()));
+            foreach ($columns as $column)
             {
-                $aggregates[$aggName] = array('sum' => array("field" => $column));
+                if ($column == "*") {
+                    $aggregates[$aggName]['filter']['and'][] = array('match_all' => array());
+                } else {
+                    $aggregates[$aggName]['filter']['and'][] = array('exists' => array('field' => $column));
+                }
+
             }
             // Pass other functions directly.
-            else
-            {
-                $aggregates[$aggName] = array($function => array("field" => $column));
-            }
+        } else {
+            $aggregates[$aggName] = array($function => array("field" => $column[0]));
         }
         $params['body']['aggs'] = $aggregates;
+
+        print(json_encode($params));
+
+        $results = $this->connection->search($params);
 
         // Once we have executed the query, we will reset the aggregate property so
         // that more select queries can be executed against the database without
         // the aggregate value getting in the way when the grammar builds it.
         $this->columns = null; $this->aggregate = null;
 
-        return count($results);
+        if ($function == 'count') {
+            return $results['aggregations'][$aggName]['doc_count'];
+        } else {
+            return $results['aggregations'][$aggName]['value'];
+        }
+
     }
 
     /**
