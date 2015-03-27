@@ -457,14 +457,23 @@ class Builder extends BaseBuilder {
      */
     public function delete($id = null)
     {
-        $wheres = $this->compileWheres();
+        $this->where('_id',$id);
+        $params = array();
+        $documents = $this->getFresh(array('_id'));
 
-        $result = $this->collection->remove($wheres);
-
-        if (1 == (int) $result['ok'])
-        {
-            return $result['n'];
+        foreach ($documents as $document) {
+            $params['body'][] = array(
+                'delete' => array(
+                    '_index' => $this->index,
+                    '_type'  => $this->from,
+                    '_id' => $document['_id']
+                )
+            );
         }
+
+        $results = $this->connection->bulk($params);
+
+        if (!$results['errors'])  return count($results['items']);
 
         return 0;
     }
