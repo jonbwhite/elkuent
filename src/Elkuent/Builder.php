@@ -24,7 +24,7 @@ class Builder extends BaseBuilder {
         // AFIK elasticsearch does not support bitwise operations
         // see: https://github.com/elastic/elasticsearch/issues/975
         // '&', '|', '^', '<<', '>>',
-        'rlike', 'regexp', 'not regexp',
+        'rlike', 'regexp', 'not regexp', 'match'
     );
 
     /**
@@ -111,6 +111,8 @@ class Builder extends BaseBuilder {
      */
     public function getFresh($columns = array())
     {
+        $params = array();
+
         // If no columns have been specified for the select statement, we will set them
         // here to either the passed columns, or the standard default of retrieving
         // all of the columns on the table using the "wildcard" column character.
@@ -122,7 +124,13 @@ class Builder extends BaseBuilder {
         // Compile wheres
         $wheres = $this->compileWheres();
 
-        $params = array();
+        // Add filtered match query
+        if (isset($wheres['match'])) {
+            $params['body']['query']['filtered']['query'] = $wheres['match'];
+
+            unset($wheres['match']);
+        }
+
         $params['body']['query']['filtered']['filter'] = $wheres;
         $params['index'] = $this->index;
         $params['type']  = $this->from;
@@ -137,8 +145,6 @@ class Builder extends BaseBuilder {
         if ($this->timeout) $cursor->timeout($this->timeout);
         if ($this->orders)  $cursor->sort($this->orders);
         */
-
-
 
         $results = array();
         $numQueryResults = null;
@@ -203,13 +209,21 @@ class Builder extends BaseBuilder {
      */
     public function aggregate($function, $columns = array())
     {
+        $params = array();
+
         // Compile wheres
         $wheres = $this->compileWheres();
 
-        $params = array();
-        $params['body']['query']['filtered']['filter'] = $wheres;
+        // Add filtered match query
+        if (isset($wheres['match'])) {
+            $params['body']['query']['filtered']['query'] = $wheres['match'];
+
+            unset($wheres['match']);
+        }
+
         $params['index'] = $this->index;
         $params['type']  = $this->from;
+        $params['body']['query']['filtered']['filter'] = $wheres;
 
         $aggregates = array();
 
@@ -695,6 +709,7 @@ class Builder extends BaseBuilder {
                 $convert = array(
                     null => 'term',
                     '=' => 'term',
+                    'match' => 'match',
                     '<>' => 'not term',
                     '!=' => 'not term',
                     'regex' => 'regexp',
@@ -720,8 +735,16 @@ class Builder extends BaseBuilder {
             $method = "compileWhere{$where['type']}";
             $result = $this->{$method}($where);
 
+
             // Wrap the where with an $or operator.
-            if ($where['boolean'] == 'or')
+            if (isset($where['operator']))
+            {
+                if ($where['operator'] == 'match')
+                {
+                    $filter['match'] = $result;
+                }
+            }
+            elseif ($where['boolean'] == 'or')
             {
                 $filter['bool']['should'][] = $result;
             }
@@ -740,6 +763,13 @@ class Builder extends BaseBuilder {
         $filter = array();
         extract($where);
 
+        if ($operator == 'match')
+        {
+            $query = array();
+            $query['match'][$column] = $value;
+
+            return $query;
+        }
 
         if (starts_with($operator, 'not'))
         {
