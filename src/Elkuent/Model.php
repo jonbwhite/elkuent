@@ -31,6 +31,27 @@ class Model extends \Illuminate\Database\Eloquent\Model {
     protected static $resolver;
 
     /**
+     * Put Mapping
+     *
+     * @param    array $mapping
+     * @param    bool $ignoreConflicts
+     * @return   array
+     */
+    public function putMapping($mapping, $ignoreConflicts = false)
+    {
+        $params = array();
+
+        $params['index'] = $this->index;
+        $params['type'] = $this->table;
+        $params['ignore_conflicts'] = $ignoreConflicts;
+        $params['body'][$this->table] = array(
+            'properties' => $mapping
+        );
+
+        return $this->getConnection()->indices()->putMapping($params);
+    }
+
+    /**
      * Custom accessor for the model's id.
      *
      * @param mixed $value
