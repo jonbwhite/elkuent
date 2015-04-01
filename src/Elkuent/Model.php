@@ -52,6 +52,28 @@ class Model extends \Illuminate\Database\Eloquent\Model {
     }
 
     /**
+     * Get Index Name
+     *
+     * @return string
+     */
+    public function getIndexName()
+    {
+        return $this->index;
+    }
+
+    /**
+     * Set Index Name
+     *
+     * @return string
+     */
+    public function setIndexName($name)
+    {
+        $this->index = $name;
+
+        return $this->index;
+    }
+
+    /**
      * Custom accessor for the model's id.
      *
      * @param mixed $value
