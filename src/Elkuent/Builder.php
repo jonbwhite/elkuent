@@ -24,7 +24,8 @@ class Builder extends BaseBuilder {
         // AFIK elasticsearch does not support bitwise operations
         // see: https://github.com/elastic/elasticsearch/issues/975
         // '&', '|', '^', '<<', '>>',
-        'rlike', 'regexp', 'not regexp',
+        'rlike', 'regexp', 'not regexp', 'geometry',
+        'geowithin', 'geointersects'
     );
 
     /**
@@ -87,7 +88,40 @@ class Builder extends BaseBuilder {
                             'gte' => $value[1]
                         )
                     )
-                );}
+                );},
+
+            'geoWithin' => function($column, $value) {
+                $type = isset($value['type']) ? $value['type'] : null;
+                $coordinates = isset($value['coordinates']) ? $value['coordinates'] : null;
+
+                return array(
+                    'geo_shape' => array(
+                        $column => array(
+                            'relation' => 'within',
+                            'shape' => array(
+                                'type' => $type,
+                                'coordinates' => $coordinates
+                            )
+                        )
+                    )
+                );
+            },
+
+            'geoIntersects' => function($column, $value) {
+                $type = isset($value['type']) ? $value['type'] : null;
+                $coordinates = isset($value['coordinates']) ? $value['coordinates'] : null;
+
+                return array(
+                    'geo_shape' => array(
+                        $column => array(
+                            'shape' => array(
+                                'type' => $type,
+                                'coordinates' => $coordinates
+                            )
+                        )
+                    )
+                );
+            }
         );
     }
 
@@ -700,6 +734,9 @@ class Builder extends BaseBuilder {
                     'regex' => 'regexp',
                     'rlike' => 'regexp',
                     'ilike' => 'regexp',
+                    'geowithin' => 'geoWithin',
+                    'geometry' => 'geoIntersects',
+                    'geointersects' => 'geoIntersects'
                 );
 
                 if (array_key_exists($where['operator'], $convert))
@@ -778,7 +815,7 @@ class Builder extends BaseBuilder {
 
         if (array_key_exists($operator, $this->conversion))
         {
-            $filter= $this->conversion[$operator]($column, $value);
+            $filter = $this->conversion[$operator]($column, $value);
         }
         else
         {
