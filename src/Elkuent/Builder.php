@@ -165,13 +165,15 @@ class Builder extends BaseBuilder {
             $params['body']['_source'] = $this->columns;
         }
 
-        // Apply order, groups, and timeout
         /* TODO add these to reference ES stuffs...
-
         if ($this->timeout) $cursor->timeout($this->timeout);
-        if ($this->orders)  $cursor->sort($this->orders);
         */
 
+        if ($this->orders) {
+            foreach ($this->orders as $column => $direction) {
+                $params['body']['sort'][] = array($column => $direction);
+            }
+        }
 
 
         $results = array();
@@ -308,16 +310,9 @@ class Builder extends BaseBuilder {
      */
     public function orderBy($column, $direction = 'asc')
     {
-        $direction = (strtolower($direction) == 'asc' ? 1 : -1);
+        $direction = (strtolower($direction) == 'asc' ? 'asc' : 'desc');
 
-        if ($column == 'natural')
-        {
-            $this->orders['$natural'] = $direction;
-        }
-        else
-        {
-            $this->orders[$column] = $direction;
-        }
+        $this->orders[$column] = $direction;
 
         return $this;
     }
