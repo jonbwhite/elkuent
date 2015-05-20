@@ -84,8 +84,8 @@ class Builder extends BaseBuilder {
                 return array(
                     'range' => array(
                         $column => array(
-                            'lte' => $value[0],
-                            'gte' => $value[1]
+                            'gte' => $value[0],
+                            'lte' => $value[1]
                         )
                     )
                 );},
