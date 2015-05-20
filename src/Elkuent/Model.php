@@ -1,11 +1,12 @@
 <?php namespace Elkuent;
 
-use Elkuent\Builder;
+use Elkuent\Eloquent\Builder;
+use Elkuent\Eloquent\Model as EModel;
 
 use Carbon\Carbon;
 use DateTime;
 
-class Model extends \Illuminate\Database\Eloquent\Model {
+class Model extends EModel {
 
     protected $index = null;
 
@@ -183,15 +184,12 @@ class Model extends \Illuminate\Database\Eloquent\Model {
     }
 
     /**
-     * Get a new query builder instance for the connection.
+     * Create a new Eloquent query builder for the model.
      *
-     * @return Builder
      */
-    protected function newBaseQueryBuilder()
+    public function newEloquentBuilder($query)
     {
-        $connection = $this->getConnection();
-
-        return new Builder($connection, $connection->getPostProcessor(), $this->index);
+        return new Builder($query);
     }
 
     /**
