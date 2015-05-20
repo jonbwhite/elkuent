@@ -1,6 +1,5 @@
 <?php namespace Elkuent;
 
-// use Elkuent\Builder;
 use Elkuent\Eloquent\Builder;
 use Elkuent\Eloquent\Model as EModel;
 
@@ -183,20 +182,6 @@ class Model extends EModel {
 
         parent::setAttribute($key, $value);
     }
-
-    /**
-     * Get a new query builder instance for the connection.
-     *
-     * @return Builder
-     */
-     /*
-    protected function newBaseQueryBuilder()
-    {
-        $connection = $this->getConnection();
-
-        return new Builder($connection, $connection->getPostProcessor(), $this->index);
-    }
-    */
 
     /**
      * Create a new Eloquent query builder for the model.
