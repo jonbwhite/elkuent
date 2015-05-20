@@ -37,7 +37,7 @@ class Builder extends BaseBuilder {
 
 
     /**
-     * Elastic search aggregation parameter
+     * Elasticsearch aggregation parameter
      * @var array
      */
     protected $aggregation;
@@ -221,7 +221,7 @@ class Builder extends BaseBuilder {
      * @param  array $aggregation PHP array representation of JSON aggregation object
      * @return void
      */
-    public function aggregateBy($aggregation) 
+    public function aggregateRaw($aggregation) 
     {
         $this->aggregation = $aggregation;
     }
