@@ -2,12 +2,12 @@
 
 // use Elkuent\Builder;
 use Elkuent\Eloquent\Builder;
-use Elkuent\EloquentModel;
+use Elkuent\Eloquent\Model as EModel;
 
 use Carbon\Carbon;
 use DateTime;
 
-class Model extends EloquentModel {
+class Model extends EModel {
 
     protected $index = null;
 

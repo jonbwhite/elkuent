@@ -35,6 +35,14 @@ class Builder extends BaseBuilder {
      */
     protected $conversion;
 
+
+    /**
+     * Elastic search aggregation parameter
+     * @var array
+     */
+    protected $aggregation;
+
+
     /**
      * Create a new query builder instance.
      *
@@ -205,6 +213,56 @@ class Builder extends BaseBuilder {
 
         return $results;
     }
+
+    /**
+     * Specify how to aggregate results
+     * Structured as an Elasticsearch aggregation: https://www.elastic.co/guide/en/elasticsearch/reference/1.5/search-aggregations.html
+     * 
+     * @param  array $aggregation PHP array representation of JSON aggregation object
+     * @return void
+     */
+    public function aggregateBy($aggregation) 
+    {
+        $this->aggregation = $aggregation;
+    }
+
+    /**
+     * Return the raw aggregation result from elasticsearch query
+     * 
+     * @return array
+     */
+    public function getRawAggregation() 
+    {
+        return $this->getFreshAggregation();
+    }
+
+    /**
+     * Execute query and return raw aggregation (the 'aggregations' array from the result)
+     * 
+     * @return array
+     */
+    public function getFreshAggregation()
+    {
+        // If no aggregation has been specified, return empty array
+        if (!$this->aggregation) {
+            return array();
+        }
+
+        // Compile wheres
+        $wheres = $this->compileWheres();
+
+        // Construct query
+        $params = array();
+        $params['body']['query']['filtered']['filter'] = $wheres;
+        $params['index'] = $this->index;
+        $params['type']  = $this->from;
+        $params['body']['aggs'] = $this->aggregation;
+
+        // Execute query
+        $results = $this->connection->search($params);
+        return $results['aggregations'];
+    }
+
 
     /**
      * Generate the unique cache key for the current query.

@@ -1,8 +1,9 @@
-<?php namespace Elkuent;
+<?php namespace Elkuent\Eloquent;
 
 use Elkuent\Builder;
+use Illuminate\Database\Eloquent\Model as EModel;
 
-class EloquentModel extends \Illuminate\Database\Eloquent\Model {
+class Model extends EModel {
 
     /**
      * Get a new query builder instance for the connection.
@@ -11,7 +12,6 @@ class EloquentModel extends \Illuminate\Database\Eloquent\Model {
      */
     protected function newBaseQueryBuilder()
     {
-        var_dump('NEW QUERY');
 
         $connection = $this->getConnection();
 
