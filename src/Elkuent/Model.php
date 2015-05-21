@@ -1,6 +1,7 @@
 <?php namespace Elkuent;
 
 use Elkuent\Eloquent\Builder;
+use Elkuent\Builder as QBuilder;
 use Elkuent\Eloquent\Model as EModel;
 
 use Carbon\Carbon;
@@ -181,6 +182,17 @@ class Model extends EModel {
         }
 
         parent::setAttribute($key, $value);
+    }
+
+    /**
+     * Get a new query builder instance for the connection.
+     *
+     */
+    protected function newBaseQueryBuilder()
+    {
+        $connection = $this->getConnection();
+
+        return new QBuilder($connection, $connection->getPostProcessor(), $this->index);
     }
 
     /**
