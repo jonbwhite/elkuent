@@ -1,7 +1,8 @@
 <?php namespace Elkuent;
 
 use Elkuent\Eloquent\Builder;
-use Elkuent\Eloquent\Model as EModel;
+use Illuminate\Database\Eloquent\Model as EModel;
+use Elkuent\Builder as QBuilder;
 
 use Carbon\Carbon;
 use DateTime;
@@ -181,6 +182,19 @@ class Model extends EModel {
         }
 
         parent::setAttribute($key, $value);
+    }
+
+    /**
+     * Get a new query builder instance for the connection.
+     *
+     * @return Builder
+     */
+    protected function newBaseQueryBuilder()
+    {
+
+        $connection = $this->getConnection();
+
+        return new QBuilder($connection, $connection->getPostProcessor(), $this->index);
     }
 
     /**
