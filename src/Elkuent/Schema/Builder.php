@@ -1,10 +1,20 @@
 <?php namespace Elkuent\Schema;
 
+use Closure;
 use Elkuent\Connection;
 use Illuminate\Database\Schema\Builder as SchemaBuilder;
 
 class Builder extends SchemaBuilder
 {
+
+    /**
+     * The schema grammar instance.
+     *
+     * @var \Illuminate\Database\Schema\Grammars\Grammar
+     */
+    protected $grammar;
+
+    public $index;
 
     /**
      * Create a new database Schema manager.
@@ -14,35 +24,30 @@ class Builder extends SchemaBuilder
     public function __construct(Connection $connection)
     {
         $this->connection = $connection;
+        $this->index = $connection->getDefaultIndex();
     }
 
     /**
-     * Create a new collection on the schema.
+     * Drop a table from the schema.
      *
-     * @param  string   $collection
-     * @param  Closure  $callback
+     * @param  string  $table
      * @return bool
      */
-    public function create($collection, Closure $callback = null)
+    public function drop($table)
     {
-        $blueprint = $this->createBlueprint($collection);
-        $blueprint->create();
+        $blueprint = $this->createBlueprint($table);
 
-        if ($callback)
-        {
-            $callback($blueprint);
-        }
+        return $blueprint->drop();
     }
 
     /**
      * Create a new Blueprint.
      *
-     * @param  string   $collection
+     * @param  string   $table
      * @return Schema\Blueprint
      */
-    protected function createBlueprint($collection, Closure $callback = null)
+    protected function createBlueprint($table, Closure $callback = null)
     {
-        return new Blueprint($this->connection, $collection);
+        return new Blueprint($this->connection, $this->index, $table);
     }
-
 }
