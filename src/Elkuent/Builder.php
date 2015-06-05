@@ -712,6 +712,7 @@ class Builder extends BaseBuilder {
                 )
             );
 
+            unset($document['_id']);
             $params['body'][] = array_merge($document, $query);
         }
 
