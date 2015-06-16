@@ -33,6 +33,54 @@ class Model extends EModel {
     protected static $resolver;
 
     /**
+     * Put Template
+     *
+     * @param    array $mapping
+     * @param    bool $ignoreConflicts
+     * @return   array
+     */
+    public function putTemplate($template, $order = null, $timeout = null, $created = null)
+    {
+        $defaultShards = 5;
+        $defaultReplicas = 1;
+        $params = array();
+
+        if ($order) {
+            $params['order'] = $order;
+        }
+
+        if ($timeout) {
+            $params['timeout'] = $timeout;
+        }
+
+        if ($created) {
+            $params['created'] = $created;
+        }
+
+        if (!isset($template['settings'])) {
+            $template['settings'] = array(
+                'number_of_shards' => $defaultShards,
+                'number_of_replicas' => $defaultReplicas
+            );
+        }
+
+        $params['body'][$this->table] = array(
+            'properties' => $template['mappings']
+        );
+
+        $params['name'] = $template['name'];
+        $params['body']['template'] = $template['name'];
+        $params['body']['settings'] = $template['settings'];
+        $params['body']['mappings'] = array(
+            $template['name'] => array(
+                'properties' => $template['mappings'][$template['name']]
+            )
+        );
+
+        return $this->getConnection()->indices()->putTemplate($params);
+    }
+
+    /**
      * Put Mapping
      *
      * @param    array $mapping
