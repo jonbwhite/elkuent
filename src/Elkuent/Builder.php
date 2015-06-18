@@ -3,6 +3,7 @@
 use DateTime, Closure;
 use Illuminate\Database\Query\Builder as BaseBuilder;
 use Illuminate\Database\Query\Expression;
+use Elasticsearch\Common\Exceptions\ClientErrorResponseException;
 
 class Builder extends BaseBuilder {
 
@@ -217,28 +218,28 @@ class Builder extends BaseBuilder {
     /**
      * Specify how to aggregate results
      * Structured as an Elasticsearch aggregation: https://www.elastic.co/guide/en/elasticsearch/reference/1.5/search-aggregations.html
-     * 
+     *
      * @param  array $aggregation PHP array representation of JSON aggregation object
      * @return void
      */
-    public function aggregateRaw($aggregation) 
+    public function aggregateRaw($aggregation)
     {
         $this->aggregation = $aggregation;
     }
 
     /**
      * Return the raw aggregation result from elasticsearch query
-     * 
+     *
      * @return array
      */
-    public function getRawAggregation() 
+    public function getRawAggregation()
     {
         return $this->getFreshAggregation();
     }
 
     /**
      * Execute query and return raw aggregation (the 'aggregations' array from the result)
-     * 
+     *
      * @return array
      */
     public function getFreshAggregation()
@@ -717,9 +718,11 @@ class Builder extends BaseBuilder {
 
         $results = $this->connection->bulk($params);
 
-        if (!$results['errors'])  return count($results['items']);
+        if ($results['errors']) {
+            throw new ClientErrorResponseException("Update failed. Check that provided input matches the mapping.");
+        }
 
-        return 0;
+        return count($results['items']);
     }
 
     /**
