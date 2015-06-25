@@ -84,6 +84,11 @@ class Connection extends \Illuminate\Database\Connection {
         return $this->connection;
     }
 
+	public function getSchemaBuilder()
+    {
+        return new Schema\Builder($this);
+    }
+
     /**
      * Dynamically pass methods to the connection.
      *
