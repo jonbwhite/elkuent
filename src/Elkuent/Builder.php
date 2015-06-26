@@ -210,6 +210,9 @@ class Builder extends BaseBuilder {
 
                 array_push($results, $result);
             }
+            if ($hits['hits']['total'] < ($params['from'] + $params['size'])) {
+                break;
+            }
         }
 
         return $results;
