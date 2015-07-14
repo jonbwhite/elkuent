@@ -52,8 +52,8 @@ class Blueprint extends SchemaBlueprint
     public function toEs(Connection $connection)
     {
         $statements = array();
-        $strings = array('string', 'char', 'text', 'mediumText', 'longText');
-        $dates = array('date', 'dateTime', 'time', 'timestamp');
+        $strings = array('string', 'char', 'text', 'medium_text', 'long_text');
+        $dates = array('date', 'date_time', 'time', 'timestamp');
 
         foreach($this->commands as $command) {
             $command = $command->toArray();
@@ -72,13 +72,13 @@ class Blueprint extends SchemaBlueprint
 
                     if (in_array($column['type'], $strings)) {
                         $property = array('type' => 'string', 'index' => 'not_analyzed');
-                    } else if (in_array($column['type'], ['interger', 'mediumInteger'])) {
+                    } else if (in_array($column['type'], ['interger', 'medium_integer'])) {
                         $property = array('type' => 'integer');
-                    } else if (in_array($column['type'], ['tinyInteger'])) {
+                    } else if (in_array($column['type'], ['tiny_integer'])) {
                         $property = array('type' => 'byte');
-                    } else if (in_array($column['type'], ['smallInteger'])) {
+                    } else if (in_array($column['type'], ['small_integer'])) {
                         $property = array('type' => 'short');
-                    } else if (in_array($column['type'], ['bigInteger', 'unsignedInteger', 'unsignedBigInteger'])) {
+                    } else if (in_array($column['type'], ['big_integer', 'unsigned_integer', 'unsigned_big_integer'])) {
                         $property = array('type' => 'long');
                     } else if (in_array($column['type'], ['float'])) {
                         $property = array('type' => 'float');
@@ -90,7 +90,7 @@ class Blueprint extends SchemaBlueprint
                         $property = array('type' => 'dateOptionalTime');
                     } else if (in_array($column['type'], ['binary'])) {
                         $property = array('type' => 'binary');
-                    } else if (in_array($column['type'], ['geoShape'])) {
+                    } else if (in_array($column['type'], ['geo_shape'])) {
                         $property = array('type' => 'geo_shape');
                     } else if (in_array($column['type'], ['nested'])) {
                         $property = array('type' => 'nested');
