@@ -105,7 +105,7 @@ class Blueprint extends SchemaBlueprint
                 $statements[] = $template;
             } else if ($command['name'] == 'drop') {
                 $template = array();
-                $tempalte['name'] = $this->table;
+                $template['name'] = $this->table;
                 $template['method'] = 'delete';
                 $statements[] = $template;
             }
