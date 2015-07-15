@@ -28,19 +28,6 @@ class Builder extends SchemaBuilder
     }
 
     /**
-     * Drop a table from the schema.
-     *
-     * @param  string  $table
-     * @return bool
-     */
-    public function drop($table)
-    {
-        $blueprint = $this->createBlueprint($table);
-
-        return $blueprint->drop();
-    }
-
-    /**
      * Create a new Blueprint.
      *
      * @param  string   $table
