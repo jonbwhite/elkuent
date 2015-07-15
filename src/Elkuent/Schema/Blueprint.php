@@ -53,7 +53,7 @@ class Blueprint extends SchemaBlueprint
     {
         $statements = array();
         $strings = array('string', 'char', 'text', 'medium_text', 'long_text');
-        $dates = array('date', 'date_time', 'time', 'timestamp');
+        $dates = array('date', 'date_time', 'datetime', 'time', 'timestamp');
 
         foreach($this->commands as $command) {
             $command = $command->toArray();
@@ -67,12 +67,13 @@ class Blueprint extends SchemaBlueprint
 
                 foreach($this->columns as $column) {
                     $column = $column->toArray();
+                    $column['type'] = snake_case($column['type']);
 
                     $property = array();
 
                     if (in_array($column['type'], $strings)) {
                         $property = array('type' => 'string', 'index' => 'not_analyzed');
-                    } else if (in_array($column['type'], ['interger', 'medium_integer'])) {
+                    } else if (in_array($column['type'], ['integer', 'medium_integer'])) {
                         $property = array('type' => 'integer');
                     } else if (in_array($column['type'], ['tiny_integer'])) {
                         $property = array('type' => 'byte');
@@ -87,7 +88,7 @@ class Blueprint extends SchemaBlueprint
                     } else if (in_array($column['type'], ['boolean'])) {
                         $property = array('type' => 'boolean');
                     } else if (in_array($column['type'], $dates)) {
-                        $property = array('type' => 'dateOptionalTime');
+                        $property = array('type' => 'date', 'format' => 'date_optional_time');
                     } else if (in_array($column['type'], ['binary'])) {
                         $property = array('type' => 'binary');
                     } else if (in_array($column['type'], ['geo_shape'])) {
@@ -96,7 +97,12 @@ class Blueprint extends SchemaBlueprint
                         $property = array('type' => 'nested');
                     }
 
-                    $properties[$column['name']] = $property;
+                    if (!empty($property)) {
+                        $properties[$column['name']] = $property;
+                    } else {
+                        trigger_error('No match found for type ' . $column['type'], E_USER_NOTICE);
+                    }
+
                 }
 
                 $template['body']['mappings'] = array(
