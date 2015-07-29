@@ -264,6 +264,10 @@ class Builder extends BaseBuilder {
 
         // Execute query
         $results = $this->connection->search($params);
+
+        if (!isset($results['aggregations'])) {
+            return [];
+        }
         return $results['aggregations'];
     }
 
