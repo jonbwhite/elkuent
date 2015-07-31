@@ -44,6 +44,11 @@ class Blueprint extends SchemaBlueprint
         return $this->addColumn('geo_shape', $column, $attributes);
     }
 
+    public function nested($column, $attributes = array())
+    {
+        return $this->addColumn('nested', $column, $attributes);
+    }
+
     public function toSql(Connection $connection, Grammar $grammar)
     {
         throw new Exception('Call to undefined method.');
