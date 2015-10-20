@@ -22,9 +22,9 @@
     },
     "require": {
         "php": ">=5.4.0",
-        "illuminate/support": "~4.2",
-        "illuminate/database": "~4.2",
-        "illuminate/validation": "~4.2",
+        "illuminate/support": "5.*",
+        "illuminate/database": "5.*",
+        "illuminate/validation": "5.*",
         "elasticsearch/elasticsearch": "~1.0"
     },
     "autoload": {
