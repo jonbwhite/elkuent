@@ -425,7 +425,7 @@ class Builder extends BaseBuilder {
 
         if ( ! $batch) $values = array($values);
 
-        $params = array();
+        $params = ['refresh' => true];
         foreach ($values as $document) {
             $params['body'][] = array(
                 'index' => array(
