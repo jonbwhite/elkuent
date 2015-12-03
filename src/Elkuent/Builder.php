@@ -709,7 +709,7 @@ class Builder extends BaseBuilder {
      */
     protected function performUpdate($query, array $options = array())
     {
-        $params = array();
+        $params = ['refresh' => true];
         $documents = $this->getFresh();
 
         foreach ($documents as $document) {
