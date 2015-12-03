@@ -456,6 +456,7 @@ class Builder extends BaseBuilder {
         $params['body']  = $values;
         $params['index'] = $this->index;
         $params['type']  = $this->from;
+        $params['refresh']  = true;
 
         $result = $this->connection->index($params);
 
