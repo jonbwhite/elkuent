@@ -425,7 +425,7 @@ class Builder extends BaseBuilder {
 
         if ( ! $batch) $values = array($values);
 
-        $params = array();
+        $params = ['refresh' => true];
         foreach ($values as $document) {
             $params['body'][] = array(
                 'index' => array(
@@ -456,6 +456,7 @@ class Builder extends BaseBuilder {
         $params['body']  = $values;
         $params['index'] = $this->index;
         $params['type']  = $this->from;
+        $params['refresh']  = true;
 
         $result = $this->connection->index($params);
 
@@ -708,7 +709,7 @@ class Builder extends BaseBuilder {
      */
     protected function performUpdate($query, array $options = array())
     {
-        $params = array();
+        $params = ['refresh' => true];
         $documents = $this->getFresh();
 
         foreach ($documents as $document) {
